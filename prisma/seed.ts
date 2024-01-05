@@ -213,8 +213,6 @@ async function seedUsers() {
 async function seedInvoices() {
   const dbCustomers = await prisma.customer.findMany();
 
-  console.log(users);
-
   const data = await prisma.invoice.createMany({
     data: invoices.map((invoice) => ({
       amount: invoice.amount,

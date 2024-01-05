@@ -22,7 +22,7 @@ model Customer {
   name String
   email String
   image_url String
-  posts Invoice[]
+  invoices Invoice[]
 }
 
 model Invoice {
