@@ -197,6 +197,10 @@ const revenue = [
 
 const prisma = new PrismaClient();
 
+async function checkIfDatabaseHasData() {
+  return await prisma.invoice.count();
+}
+
 async function seedUsers() {
   const data = await prisma.user.createMany({
     data: users.map((user) => ({
@@ -252,6 +256,12 @@ async function seedRevenue() {
 }
 
 async function main() {
+  const currentInvoicesCount = await checkIfDatabaseHasData();
+  if (currentInvoicesCount) {
+    console.log(`Database already seeded. Current invoices ${currentInvoicesCount}`);
+    return;
+  }
+
   const countUsers = await seedUsers();
   const countCustomers = await seedCustomers();
   const countInvoices = await seedInvoices();
@@ -262,7 +272,7 @@ async function main() {
     customers: countCustomers,
     invoices: countInvoices,
     revenue: countRevenue,
-  })
+  });
 }
 
 main().catch((err) => {
