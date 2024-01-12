@@ -173,7 +173,7 @@ export async function fetchInvoiceById(id: number) {
     });
 
     if (!data) {
-      return {} as InvoiceForm;
+      return null;
     }
 
     const invoice: InvoiceForm = {

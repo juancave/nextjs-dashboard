@@ -24,14 +24,20 @@ export async function createInvoice(formData: FormData) {
   });
   const amountInCents = amount * 100;
 
-  await prisma.invoice.create({
-    data: {
-      customer_id: Number(customerId),
-      amount: amountInCents,
-      status: status,
-      date: new Date().toISOString(),
-    }
-  });
+  try {
+    await prisma.invoice.create({
+      data: {
+        customer_id: Number(customerId),
+        amount: amountInCents,
+        status: status,
+        date: new Date().toISOString(),
+      }
+    });
+  } catch (error) {
+    return {
+      message: 'Database Error: Failed to Create Invoice.',
+    };
+  }
 
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
@@ -48,27 +54,35 @@ export async function updateInvoice(id: string, formData: FormData) {
  
   const amountInCents = amount * 100;
  
-  await prisma.invoice.update({
-    data: {
-      amount: amountInCents,
-      customer_id: Number(customerId),
-      status: status
-    },
-    where: {
-      id: Number(id),
-    }
-  });
+  try {
+    await prisma.invoice.update({
+      data: {
+        amount: amountInCents,
+        customer_id: Number(customerId),
+        status: status
+      },
+      where: {
+        id: Number(id),
+      }
+    });
+  } catch (error) {
+    return { message: 'Database Error: Failed to Update Invoice.' };
+  }
 
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
 export async function deleteInvoice(id: string) {
-  await prisma.invoice.delete({
-    where: {
-      id: Number(id),
-    }
-  });
-
-  revalidatePath('/dashboard/invoices');
+  try {
+    await prisma.invoice.delete({
+      where: {
+        id: Number(id),
+      }
+    });
+    revalidatePath('/dashboard/invoices');
+    return { message: 'Deleted Invoice.' };
+  } catch (error) {
+    return { message: 'Database Error: Failed to Delete Invoice.' };
+  }
 }
