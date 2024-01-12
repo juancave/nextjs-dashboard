@@ -211,7 +211,7 @@ export async function fetchCustomers() {
     //   ORDER BY name ASC
     // `;
 
-    return data;
+    return data.map((customer) => ({ id: `${customer.id}`, name: customer.name }));
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch all customers.');
