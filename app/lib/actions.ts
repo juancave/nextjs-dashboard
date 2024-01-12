@@ -59,12 +59,16 @@ export async function updateInvoice(id: string, formData: FormData) {
     }
   });
 
-  // await sql`
-  //   UPDATE invoices
-  //   SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-  //   WHERE id = ${id}
-  // `;
- 
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
+}
+
+export async function deleteInvoice(id: string) {
+  await prisma.invoice.delete({
+    where: {
+      id: Number(id),
+    }
+  });
+
+  revalidatePath('/dashboard/invoices');
 }
