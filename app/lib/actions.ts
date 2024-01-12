@@ -2,11 +2,12 @@
 
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client'
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 const prisma = new PrismaClient();
 
 const FormSchema = z.object({
-  id: z.string(),
   customerId: z.string(),
   amount: z.coerce.number(),
   status: z.enum(['pending', 'paid']),
@@ -32,5 +33,6 @@ export async function createInvoice(formData: FormData) {
     }
   });
 
-  console.log(invoice);
+  revalidatePath('/dashboard/invoices');
+  redirect('/dashboard/invoices');
 }
