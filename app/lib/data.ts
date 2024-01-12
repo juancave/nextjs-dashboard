@@ -166,29 +166,25 @@ export async function fetchInvoicesPages(query: string) {
 export async function fetchInvoiceById(id: number) {
   noStore();
   try {
-    const data = await prisma.invoice.findMany({
+    const data = await prisma.invoice.findFirst({
       where: {
         id,
       },
     });
 
-    // const data = await sql<InvoiceForm>`
-    //   SELECT
-    //     invoices.id,
-    //     invoices.customer_id,
-    //     invoices.amount,
-    //     invoices.status
-    //   FROM invoices
-    //   WHERE invoices.id = ${id};
-    // `;
+    if (!data) {
+      return {} as InvoiceForm;
+    }
 
-    const invoice = data.map((invoice) => ({
-      ...invoice,
+    const invoice: InvoiceForm = {
+      id: `${data.id}`,
+      customer_id: `${data.customer_id}`,
       // Convert amount from cents to dollars
-      amount: invoice.amount / 100,
-    }));
+      amount: data.amount / 100,
+      status: data.status === 'paid' ? 'paid' : 'pending',
+    };
 
-    return invoice[0];
+    return invoice;
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoice.');
@@ -202,14 +198,6 @@ export async function fetchCustomers() {
         name: 'asc',
       },
     });
-
-    // const data = await sql<CustomerField>`
-    //   SELECT
-    //     id,
-    //     name
-    //   FROM customers
-    //   ORDER BY name ASC
-    // `;
 
     return data.map((customer) => ({ id: `${customer.id}`, name: customer.name }));
   } catch (err) {
