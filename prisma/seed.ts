@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcrypt';
 
 const users = [
   {
@@ -202,12 +203,14 @@ async function checkIfDatabaseHasData() {
 }
 
 async function seedUsers() {
+  const usersToCreate = await Promise.all(users.map(async (user) => ({
+    email: user.email,
+    password: await bcrypt.hash(user.password, 10),
+    name: user.name,
+  })));
+
   const data = await prisma.user.createMany({
-    data: users.map((user) => ({
-      email: user.email,
-      password: user.password,
-      name: user.name,
-    })),
+    data: usersToCreate,
     skipDuplicates: true,
   });
 
