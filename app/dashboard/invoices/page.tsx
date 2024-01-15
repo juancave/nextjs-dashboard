@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: 'Invoices',
 };
 
-export default async function Page({
+export default async function InvoicesPage({
   searchParams,
 }: {
   searchParams?: {

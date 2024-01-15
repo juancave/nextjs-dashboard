@@ -2,11 +2,9 @@ import { PrismaClient } from '@prisma/client'
 import {
   CustomerField,
   CustomersTableType,
+  FormattedCustomersTable,
   InvoiceForm,
   InvoicesTable,
-  LatestInvoiceRaw,
-  User,
-  Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -190,7 +188,7 @@ export async function fetchInvoiceById(id: number) {
   }
 }
 
-export async function fetchCustomers() {
+export async function fetchCustomers(): Promise<CustomerField[]> {
   try {
     const data = await prisma.customer.findMany({
       orderBy: {
@@ -205,52 +203,55 @@ export async function fetchCustomers() {
   }
 }
 
-export async function fetchFilteredCustomers(query: string) {
+export async function fetchCustomersPages(query: string): Promise<number> {
   noStore();
   try {
+    const data = await prisma.$queryRaw<{ count: number }[]>`SELECT COUNT(*)
+      FROM "Customer" c
+      WHERE
+        c.name ILIKE ${`%${query}%`} OR
+        c.email ILIKE ${`%${query}%`}
+    `;
+
+    return Math.ceil(Number(data[0].count) / ITEMS_PER_PAGE);
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of invoices.');
+  }
+}
+
+export async function fetchFilteredCustomers(query: string, currentPage: number): Promise<FormattedCustomersTable[]> {
+  noStore();
+  try {
+    const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
     const data = await prisma.$queryRaw<CustomersTableType[]>`
       SELECT
-        customers.id,
-        customers.name,
-        customers.email,
-        customers.image_url,
-        COUNT(invoices.id) AS total_invoices,
-        SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-        SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
-      FROM customers
-      LEFT JOIN invoices ON customers.id = invoices.customer_id
+        c.id,
+        c.name,
+        c.email,
+        c.image_url,
+        COUNT(i.id) AS total_invoices,
+        SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END) AS total_pending,
+        SUM(CASE WHEN i.status = 'paid' THEN i.amount ELSE 0 END) AS total_paid
+      FROM "Customer" c
+      LEFT JOIN "Invoice" i ON c.id = i.customer_id
       WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-          customers.email ILIKE ${`%${query}%`}
-      GROUP BY customers.id, customers.name, customers.email, customers.image_url
-      ORDER BY customers.name ASC
+        c.name ILIKE ${`%${query}%`} OR
+          c.email ILIKE ${`%${query}%`}
+      GROUP BY c.id, c.name, c.email, c.image_url
+      ORDER BY c.name ASC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
       `;
 
-    // const data = await sql<CustomersTableType>`
-		// SELECT
-		//   customers.id,
-		//   customers.name,
-		//   customers.email,
-		//   customers.image_url,
-		//   COUNT(invoices.id) AS total_invoices,
-		//   SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-		//   SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
-		// FROM customers
-		// LEFT JOIN invoices ON customers.id = invoices.customer_id
-		// WHERE
-		//   customers.name ILIKE ${`%${query}%`} OR
-    //     customers.email ILIKE ${`%${query}%`}
-		// GROUP BY customers.id, customers.name, customers.email, customers.image_url
-		// ORDER BY customers.name ASC
-	  // `;
-
-    const customers = data.map((customer) => ({
+    return data.map((customer) => ({
       ...customer,
-      total_pending: formatCurrency(customer.total_pending),
-      total_paid: formatCurrency(customer.total_paid),
+      total_pending: formatCurrency(Number(customer.total_pending)),
+      total_paid: formatCurrency(Number(customer.total_paid)),
+      total_invoices: Number(customer.total_invoices)
     }));
-
-    return customers;
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch customer table.');
